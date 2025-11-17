@@ -1,0 +1,589 @@
+---
+title: "Tratamiento de Valores Faltantes y Detección de Outliers"
+author: 
+  - "HINOSTROZA TENORIO, Yeferson"
+  - "TU NOMBRE"
+course: "ES-288"
+teacher: "Jackson Romero Plasencia"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(naniar)
+library(mice)
+library(VIM)
+```
+
+# Introducción
+
+Cuando trabajamos con datos en la vida real, casi siempre nos encontramos con dos problemas comunes: datos que faltan y valores extremos que no encajan con el resto. Estos problemas son completamente normales y le pasan a todo el mundo que trabaja con datos.
+
+Imagina que estás haciendo una encuesta y algunas personas no responden todas las preguntas. O piensa en medir la altura de un grupo de personas y alguien por error anotó 250 cm en lugar de 150 cm. Estas situaciones son ejemplos de datos faltantes y outliers.
+
+En esta monografía vamos a aprender qué son estos problemas, por qué aparecen y cómo podemos solucionarlos de manera práctica.
+
+# Valores Faltantes
+
+## ¿Qué son los valores faltantes?
+
+Los valores faltantes son simplemente espacios vacíos en nuestros datos. En R aparecen como `NA` (Not Available). Es como tener un formulario donde algunas casillas quedaron en blanco.
+
+Por ejemplo, si tenemos datos de estudiantes:
+
+```{r ejemplo_na}
+estudiantes <- data.frame(
+  nombre = c("Ana", "Luis", "María", "Carlos"),
+  edad = c(20, NA, 22, 21),
+  nota = c(85, 90, NA, 88)
+)
+
+print(estudiantes)
+```
+
+Aquí vemos que no sabemos la edad de Luis ni la nota de María.
+
+## ¿Por qué faltan datos?
+
+Los datos pueden faltar por varias razones:
+
+**Razones técnicas:** A veces los sensores fallan, los archivos se corrompen o hay errores al copiar información de un lugar a otro.
+
+**Razones humanas:** Las personas olvidan llenar campos, no quieren compartir información personal o simplemente se saltan preguntas que les parecen incómodas.
+
+**Razones del diseño:** Algunas preguntas solo aplican para ciertas personas. Por ejemplo, si preguntas "¿cuántos hijos tienes?" a personas sin hijos, esa casilla podría quedar vacía.
+
+## Tipos de valores faltantes
+
+No todos los datos faltantes son iguales. Entender el tipo nos ayuda a decidir qué hacer:
+
+### Faltantes completamente al azar (MCAR)
+
+Estos datos faltan sin ningún patrón. Es pura casualidad. Por ejemplo, si tu computadora se apagó justo cuando ibas a guardar algunos datos y perdiste información aleatoria.
+
+### Faltantes al azar (MAR)
+
+Aquí sí hay un patrón, pero está relacionado con otras variables que sí tenemos. Por ejemplo, las personas mayores tienden a no responder preguntas sobre tecnología, pero sí sabemos su edad.
+
+### Faltantes no al azar (MNAR)
+
+Los datos faltan por una razón relacionada con el valor mismo que falta. Por ejemplo, las personas con ingresos muy altos prefieren no revelar su salario.
+
+## Detectando valores faltantes
+
+Antes de hacer algo, necesitamos saber dónde están los problemas:
+
+```{r detectar_na}
+# Crear datos de ejemplo
+set.seed(123)
+datos <- data.frame(
+  edad = sample(c(18:65, NA), 100, replace = TRUE),
+  ingreso = sample(c(1000:5000, NA), 100, replace = TRUE),
+  educacion = sample(c("Primaria", "Secundaria", "Universidad", NA), 100, replace = TRUE)
+)
+
+# Ver cuántos NA hay en cada columna
+colSums(is.na(datos))
+
+# Ver el porcentaje de datos faltantes
+porcentaje_na <- colMeans(is.na(datos)) * 100
+print(round(porcentaje_na, 2))
+```
+
+### Visualizando datos faltantes
+
+Las imágenes nos ayudan a entender mejor:
+
+```{r vis_na, fig.width=8, fig.height=5}
+# Patrón de valores faltantes
+vis_miss(datos)
+```
+
+Este gráfico nos muestra dónde están los huecos en nuestros datos. Las partes oscuras son datos que tenemos, las claras son los que faltan.
+
+## Estrategias para manejar valores faltantes
+
+### Opción 1: Eliminar los datos faltantes
+
+La forma más simple es borrar las filas con datos faltantes:
+
+```{r eliminar_na}
+# Eliminar filas con cualquier NA
+datos_completos <- na.omit(datos)
+
+# Ver cuántos datos perdimos
+cat("Datos originales:", nrow(datos), "filas\n")
+cat("Datos después de eliminar NA:", nrow(datos_completos), "filas\n")
+cat("Perdimos:", nrow(datos) - nrow(datos_completos), "filas")
+```
+
+**Cuándo usar esto:** Solo cuando tienes muchos datos y los faltantes son pocos (menos del 5%). Si no, puedes perder información valiosa.
+
+**Ventajas:** Es rápido y simple.
+
+**Desventajas:** Pierdes información y puedes crear sesgos en tus resultados.
+
+### Opción 2: Rellenar con un valor simple
+
+Podemos llenar los huecos con un valor que tenga sentido:
+
+```{r imputar_simple}
+datos_imputados <- datos
+
+# Rellenar edad con la edad promedio
+datos_imputados$edad[is.na(datos_imputados$edad)] <- 
+  mean(datos_imputados$edad, na.rm = TRUE)
+
+# Rellenar ingreso con la mediana
+datos_imputados$ingreso[is.na(datos_imputados$ingreso)] <- 
+  median(datos_imputados$ingreso, na.rm = TRUE)
+
+# Rellenar educación con el valor más común
+moda_educacion <- names(sort(table(datos_imputados$educacion), 
+                             decreasing = TRUE))[1]
+datos_imputados$educacion[is.na(datos_imputados$educacion)] <- 
+  moda_educacion
+
+# Verificar
+cat("NAs restantes:", sum(is.na(datos_imputados)))
+```
+
+**Cuándo usar esto:** Para análisis exploratorios rápidos o cuando los datos faltantes son muy pocos.
+
+**Ventajas:** Muy fácil de implementar y mantiene el tamaño de tus datos.
+
+**Desventajas:** Reduce la variabilidad natural de los datos y puede distorsionar las relaciones entre variables.
+
+### Opción 3: Imputación múltiple (método avanzado)
+
+Este método es más sofisticado. Usa las relaciones entre variables para adivinar los valores faltantes de forma inteligente:
+
+```{r mice_imputacion}
+# Preparar datos para MICE
+datos_numericos <- datos
+datos_numericos$educacion <- as.factor(datos_numericos$educacion)
+
+# Imputación múltiple
+imputacion <- mice(datos_numericos, m = 5, method = 'pmm', seed = 123, 
+                   print = FALSE)
+
+# Obtener un conjunto de datos completo
+datos_mice <- complete(imputacion, 1)
+
+# Comparar distribuciones
+par(mfrow = c(1, 2))
+hist(datos$edad, main = "Edad Original", xlab = "Edad", col = "lightblue")
+hist(datos_mice$edad, main = "Edad Imputada", xlab = "Edad", col = "lightcoral")
+```
+
+**Cuándo usar esto:** Cuando tienes datos importantes con bastantes valores faltantes (entre 5% y 40%) y necesitas resultados precisos.
+
+**Ventajas:** Preserva las relaciones entre variables y la variabilidad natural de los datos.
+
+**Desventajas:** Es más complejo y requiere más tiempo de cálculo.
+
+# Detección de Outliers
+
+## ¿Qué son los outliers?
+
+Los outliers (valores atípicos) son datos que están muy alejados del resto. Son como una persona de 2 metros de altura en un salón de niños de primaria: técnicamente es un dato válido, pero definitivamente llama la atención.
+
+```{r ejemplo_outliers}
+# Crear datos con outliers
+set.seed(456)
+datos_outliers <- data.frame(
+  id = 1:100,
+  peso = c(rnorm(95, mean = 70, sd = 10), 150, 180, 200, 5, 10)
+)
+
+# Visualizar
+boxplot(datos_outliers$peso, main = "Distribución del Peso (con outliers)",
+        ylab = "Peso (kg)", col = "lightgreen")
+```
+
+## ¿Por qué aparecen los outliers?
+
+Los outliers pueden aparecer por varias razones:
+
+**Errores de medición:** Alguien escribió mal un número. En vez de 70 kg, escribió 700 kg.
+
+**Errores de entrada de datos:** Al escribir en la computadora se presionaron teclas extra.
+
+**Valores reales extremos:** A veces son datos verdaderos pero inusuales. Por ejemplo, el ingreso de un millonario en una encuesta de ingresos promedio.
+
+**Variabilidad natural:** En algunos fenómenos, los valores extremos son normales y esperados.
+
+## Métodos para detectar outliers
+
+### Método 1: Visualización con boxplot
+
+La caja con bigotes es una forma visual muy útil:
+
+```{r boxplot_explicado, fig.width=8, fig.height=6}
+par(mfrow = c(2, 2))
+
+# Datos sin outliers
+datos_normales <- rnorm(100, mean = 50, sd = 10)
+boxplot(datos_normales, main = "Sin Outliers", col = "lightblue")
+
+# Datos con outliers leves
+datos_leves <- c(datos_normales, 85, 90)
+boxplot(datos_leves, main = "Outliers Leves", col = "yellow")
+
+# Datos con outliers extremos
+datos_extremos <- c(datos_normales, 100, 120)
+boxplot(datos_extremos, main = "Outliers Extremos", col = "orange")
+
+# Datos con outliers en ambos lados
+datos_ambos <- c(datos_normales, 0, 5, 95, 100)
+boxplot(datos_ambos, main = "Outliers en Ambos Lados", col = "pink")
+```
+
+En el boxplot:
+
+-   La caja muestra donde está el 50% central de los datos
+-   La línea del medio es la mediana
+-   Los puntos fuera de los "bigotes" son posibles outliers
+
+### Método 2: Rango intercuartílico (IQR)
+
+Este es el método matemático detrás del boxplot:
+
+```{r iqr_metodo}
+# Calcular IQR
+Q1 <- quantile(datos_outliers$peso, 0.25)
+Q3 <- quantile(datos_outliers$peso, 0.75)
+IQR_valor <- Q3 - Q1
+
+# Calcular límites
+limite_inferior <- Q1 - 1.5 * IQR_valor
+limite_superior <- Q3 + 1.5 * IQR_valor
+
+cat("Límite inferior:", limite_inferior, "\n")
+cat("Límite superior:", limite_superior, "\n")
+
+# Identificar outliers
+outliers_iqr <- datos_outliers$peso < limite_inferior | 
+                datos_outliers$peso > limite_superior
+
+cat("\nNúmero de outliers detectados:", sum(outliers_iqr), "\n")
+cat("Valores outliers:", datos_outliers$peso[outliers_iqr])
+```
+
+### Método 3: Z-score (puntaje estandarizado)
+
+Este método mide qué tan lejos está cada dato del promedio:
+
+```{r zscore}
+# Calcular Z-scores
+z_scores <- scale(datos_outliers$peso)
+
+# Los datos con |Z-score| > 3 son outliers extremos
+outliers_z <- abs(z_scores) > 3
+
+cat("Outliers por Z-score (|Z| > 3):", sum(outliers_z), "\n")
+
+# Visualizar
+plot(datos_outliers$id, z_scores, 
+     main = "Z-scores de los Datos",
+     xlab = "ID", ylab = "Z-score",
+     col = ifelse(outliers_z, "red", "blue"),
+     pch = 19)
+abline(h = c(-3, 3), col = "red", lty = 2)
+legend("topright", c("Normal", "Outlier"), 
+       col = c("blue", "red"), pch = 19)
+```
+
+**Interpretación del Z-score:**
+
+-   Z-score entre -2 y 2: dato normal (95% de los datos)
+-   Z-score entre -3 y 3: dato aceptable (99.7% de los datos)
+-   Z-score mayor que 3 o menor que -3: posible outlier
+
+### Método 4: Método MAD (Desviación Absoluta Mediana)
+
+Este método es más robusto que el Z-score porque no se afecta tanto por los outliers mismos:
+
+```{r mad_method}
+# Calcular MAD
+mediana <- median(datos_outliers$peso)
+mad_valor <- mad(datos_outliers$peso)
+
+# Calcular modified Z-scores
+mad_scores <- abs(datos_outliers$peso - mediana) / mad_valor
+
+# Identificar outliers (usualmente se usa 3.5 como umbral)
+outliers_mad <- mad_scores > 3.5
+
+cat("Outliers por método MAD:", sum(outliers_mad), "\n")
+cat("Valores outliers:", datos_outliers$peso[outliers_mad])
+```
+
+## ¿Qué hacer con los outliers?
+
+Una vez que identificamos outliers, tenemos varias opciones:
+
+### Opción 1: Investigar primero
+
+Antes de hacer cualquier cosa, investiga:
+
+```{r investigar}
+# Ver los outliers en contexto
+datos_con_flag <- datos_outliers
+datos_con_flag$es_outlier <- outliers_iqr
+
+# Mostrar outliers
+cat("Outliers detectados:\n")
+print(datos_con_flag[datos_con_flag$es_outlier, ])
+```
+
+Pregúntate:
+
+-   ¿Es un error obvio de escritura?
+-   ¿Puede ser un valor real?
+-   ¿Afecta mucho mis resultados?
+
+### Opción 2: Eliminar outliers
+
+Si estás seguro de que son errores:
+
+```{r eliminar_outliers}
+# Eliminar outliers
+datos_sin_outliers <- datos_outliers[!outliers_iqr, ]
+
+# Comparar
+cat("Datos originales:", nrow(datos_outliers), "observaciones\n")
+cat("Datos sin outliers:", nrow(datos_sin_outliers), "observaciones\n")
+cat("Diferencia:", nrow(datos_outliers) - nrow(datos_sin_outliers), 
+    "observaciones eliminadas")
+
+# Visualizar diferencia
+par(mfrow = c(1, 2))
+boxplot(datos_outliers$peso, main = "Con Outliers", col = "lightcoral")
+boxplot(datos_sin_outliers$peso, main = "Sin Outliers", col = "lightgreen")
+```
+
+### Opción 3: Transformar outliers (winsorización)
+
+En vez de eliminar, cambiamos los valores extremos por algo más razonable:
+
+```{r winsorizar}
+# Función para winsorizar
+winsorizar <- function(x, probs = c(0.05, 0.95)) {
+  limites <- quantile(x, probs = probs, na.rm = TRUE)
+  x[x < limites[1]] <- limites[1]
+  x[x > limites[2]] <- limites[2]
+  return(x)
+}
+
+# Aplicar winsorización
+datos_winsor <- datos_outliers
+datos_winsor$peso <- winsorizar(datos_winsor$peso)
+
+# Comparar
+par(mfrow = c(1, 3))
+boxplot(datos_outliers$peso, main = "Original", col = "lightcoral")
+boxplot(datos_sin_outliers$peso, main = "Eliminados", col = "lightgreen")
+boxplot(datos_winsor$peso, main = "Winsorizados", col = "lightblue")
+```
+
+### Opción 4: Usar métodos robustos
+
+En vez de cambiar los datos, usamos estadísticas que no se afectan por outliers:
+
+```{r robustos}
+# Comparar media vs mediana
+cat("Media (sensible a outliers):", mean(datos_outliers$peso), "\n")
+cat("Mediana (robusta a outliers):", median(datos_outliers$peso), "\n")
+
+# La mediana no cambia mucho con outliers
+cat("\nSin outliers:\n")
+cat("Media:", mean(datos_sin_outliers$peso), "\n")
+cat("Mediana:", median(datos_sin_outliers$peso), "\n")
+```
+
+# Caso Práctico Completo
+
+Vamos a juntar todo lo aprendido con un ejemplo real:
+
+```{r caso_practico}
+# Crear dataset realista
+set.seed(789)
+n <- 200
+
+ventas <- data.frame(
+  id = 1:n,
+  edad_cliente = sample(c(18:70, NA), n, replace = TRUE),
+  monto_compra = c(rnorm(190, 500, 150), 5000, 6000, rep(NA, 8)),
+  tiempo_cliente = sample(c(1:10, NA), n, replace = TRUE),
+  satisfaccion = sample(c(1:5, NA), n, replace = TRUE)
+)
+
+cat("=== ESTADO INICIAL ===\n")
+cat("Dimensiones:", dim(ventas), "\n")
+cat("NAs por columna:\n")
+print(colSums(is.na(ventas)))
+```
+
+## Paso 1: Análisis exploratorio
+
+```{r eda, fig.width=10, fig.height=6}
+# Visualizar datos faltantes
+vis_miss(ventas)
+
+# Estadísticas descriptivas
+summary(ventas)
+```
+
+## Paso 2: Tratar valores faltantes
+
+```{r tratar_na_caso}
+# Imputar valores faltantes
+ventas_limpio <- ventas
+
+# Edad: usar mediana
+ventas_limpio$edad_cliente[is.na(ventas_limpio$edad_cliente)] <- 
+  median(ventas_limpio$edad_cliente, na.rm = TRUE)
+
+# Tiempo cliente: usar media
+ventas_limpio$tiempo_cliente[is.na(ventas_limpio$tiempo_cliente)] <- 
+  round(mean(ventas_limpio$tiempo_cliente, na.rm = TRUE))
+
+# Satisfacción: usar moda
+moda_sat <- as.numeric(names(sort(table(ventas_limpio$satisfaccion), 
+                                  decreasing = TRUE))[1])
+ventas_limpio$satisfaccion[is.na(ventas_limpio$satisfaccion)] <- moda_sat
+
+# Monto: decidir después de ver outliers
+```
+
+## Paso 3: Detectar y tratar outliers
+
+```{r outliers_caso, fig.width=10, fig.height=6}
+# Detectar outliers en monto_compra
+Q1 <- quantile(ventas_limpio$monto_compra, 0.25, na.rm = TRUE)
+Q3 <- quantile(ventas_limpio$monto_compra, 0.75, na.rm = TRUE)
+IQR_val <- Q3 - Q1
+
+limite_inf <- Q1 - 1.5 * IQR_val
+limite_sup <- Q3 + 1.5 * IQR_val
+
+outliers <- ventas_limpio$monto_compra < limite_inf | 
+            ventas_limpio$monto_compra > limite_sup
+
+cat("Outliers detectados:", sum(outliers, na.rm = TRUE), "\n")
+
+# Visualizar
+par(mfrow = c(1, 2))
+boxplot(ventas_limpio$monto_compra, main = "Con Outliers", 
+        col = "lightcoral")
+
+# Aplicar winsorización
+ventas_limpio$monto_compra <- winsorizar(ventas_limpio$monto_compra, 
+                                          probs = c(0.01, 0.99))
+
+boxplot(ventas_limpio$monto_compra, main = "Después del Tratamiento", 
+        col = "lightgreen")
+```
+
+## Paso 4: Imputar valores faltantes restantes
+
+```{r imputar_final}
+# Ahora sí imputar monto_compra
+ventas_limpio$monto_compra[is.na(ventas_limpio$monto_compra)] <- 
+  median(ventas_limpio$monto_compra, na.rm = TRUE)
+
+cat("=== RESULTADO FINAL ===\n")
+cat("NAs restantes:", sum(is.na(ventas_limpio)), "\n")
+summary(ventas_limpio)
+```
+
+## Paso 5: Comparar antes y después
+
+```{r comparacion, fig.width=12, fig.height=8}
+par(mfrow = c(2, 2))
+
+# Edad
+hist(ventas$edad_cliente, main = "Edad - Original", 
+     col = "lightblue", xlab = "Edad")
+hist(ventas_limpio$edad_cliente, main = "Edad - Limpia", 
+     col = "lightgreen", xlab = "Edad")
+
+# Monto
+hist(ventas$monto_compra, main = "Monto - Original", 
+     col = "lightcoral", xlab = "Monto")
+hist(ventas_limpio$monto_compra, main = "Monto - Limpio", 
+     col = "lightyellow", xlab = "Monto")
+```
+
+# Recomendaciones Prácticas
+
+## Para valores faltantes
+
+1.  **Siempre analiza primero:** No borres datos sin pensar. Investiga por qué faltan.
+
+2.  **Documenta tus decisiones:** Escribe qué hiciste y por qué. Tu yo del futuro te lo agradecerá.
+
+3.  **Usa el método apropiado:**
+
+    -   Pocos faltantes (\< 5%): puedes eliminar
+    -   Faltantes moderados (5-20%): imputación simple
+    -   Muchos faltantes (\> 20%): imputación múltiple o busca más datos
+
+4.  **Verifica el impacto:** Compara tus resultados con y sin imputación para ver si cambian mucho.
+
+## Para outliers
+
+1.  **No elimines automáticamente:** Un outlier puede ser tu descubrimiento más importante.
+
+2.  **Investiga el contexto:** ¿Es un error o un fenómeno real interesante?
+
+3.  **Usa múltiples métodos:** Si varios métodos identifican el mismo outlier, probablemente sea real.
+
+4.  **Considera el análisis:**
+
+    -   Para promedios: los outliers afectan mucho
+    -   Para medianas: los outliers afectan poco
+    -   Para modelos predictivos: depende del modelo
+
+5.  **Reporta todo:** Di siempre cuántos outliers encontraste y qué hiciste con ellos.
+
+# Conclusiones
+
+Trabajar con datos faltantes y outliers es parte normal del análisis de datos. No hay una única forma correcta de manejarlos, todo depende de:
+
+-   Tu tipo de datos
+-   Tu objetivo de análisis
+-   El contexto de tu problema
+-   La cantidad de datos que tienes
+
+Lo más importante es ser transparente, documentar tus decisiones y siempre verificar que tus resultados tengan sentido en el mundo real.
+
+Recuerda: **los datos limpios no son perfectos, son apropiados para tu análisis.**
+
+# Referencias y Recursos Adicionales
+
+Para aprender más sobre estos temas:
+
+-   **Paquetes de R útiles:**
+    -   `naniar`: visualización de datos faltantes
+    -   `mice`: imputación múltiple
+    -   `VIM`: visualización de datos faltantes
+    -   `outliers`: detección de outliers
+-   **Conceptos clave:**
+    -   MCAR, MAR, MNAR: tipos de datos faltantes
+    -   IQR: rango intercuartílico
+    -   Z-score: puntaje estandarizado
+    -   Winsorización: técnica de transformación
+-   **Buenas prácticas:**
+    -   Siempre explora tus datos primero
+    -   Documenta cada paso de tu limpieza
+    -   Guarda versiones antes y después de la limpieza
+    -   Verifica que los resultados tengan sentido

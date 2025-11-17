@@ -1,0 +1,4 @@
+"0",""
+"0","# Monto"
+"0","hist(ventas$monto_compra, main = ""Monto - Original"", "
+"0","     col = ""lightcoral"", xlab = ""Monto"")"

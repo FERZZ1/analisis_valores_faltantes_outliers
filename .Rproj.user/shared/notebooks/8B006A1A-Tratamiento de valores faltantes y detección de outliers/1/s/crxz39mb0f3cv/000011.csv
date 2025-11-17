@@ -1,0 +1,7 @@
+"0",""
+"0","# Aplicar winsorización"
+"0","ventas_limpio$monto_compra <- winsorizar(ventas_limpio$monto_compra, "
+"0","                                          probs = c(0.01, 0.99))"
+"0",""
+"0","boxplot(ventas_limpio$monto_compra, main = ""Después del Tratamiento"", "
+"0","        col = ""lightgreen"")"

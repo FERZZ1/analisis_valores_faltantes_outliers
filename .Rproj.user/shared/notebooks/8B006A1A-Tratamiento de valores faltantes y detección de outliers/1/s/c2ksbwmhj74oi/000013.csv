@@ -1,0 +1,1 @@
+"0","boxplot(datos_winsor$peso, main = ""Winsorizados"", col = ""lightblue"")"

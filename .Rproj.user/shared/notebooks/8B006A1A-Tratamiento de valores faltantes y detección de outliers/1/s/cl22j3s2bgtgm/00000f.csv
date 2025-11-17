@@ -1,0 +1,5 @@
+"0","par(mfrow = c(2, 2))"
+"0",""
+"0","# Datos sin outliers"
+"0","datos_normales <- rnorm(100, mean = 50, sd = 10)"
+"0","boxplot(datos_normales, main = ""Sin Outliers"", col = ""lightblue"")"

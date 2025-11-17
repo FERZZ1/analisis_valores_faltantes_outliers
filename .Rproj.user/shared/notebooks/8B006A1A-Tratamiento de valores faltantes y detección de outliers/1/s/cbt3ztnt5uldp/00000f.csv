@@ -1,0 +1,5 @@
+"0","par(mfrow = c(2, 2))"
+"0",""
+"0","# Edad"
+"0","hist(ventas$edad_cliente, main = ""Edad - Original"", "
+"0","     col = ""lightblue"", xlab = ""Edad"")"

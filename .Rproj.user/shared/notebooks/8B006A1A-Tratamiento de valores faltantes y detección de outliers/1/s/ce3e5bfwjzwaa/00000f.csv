@@ -1,0 +1,9 @@
+"0","# Ver los outliers en contexto"
+"0","datos_con_flag <- datos_outliers"
+"0","datos_con_flag$es_outlier <- outliers_iqr"
+"0",""
+"0","# Mostrar outliers"
+"0","cat(""Outliers detectados:\n"")"
+"1","Outliers detectados:
+"
+"0","print(datos_con_flag[datos_con_flag$es_outlier, ])"

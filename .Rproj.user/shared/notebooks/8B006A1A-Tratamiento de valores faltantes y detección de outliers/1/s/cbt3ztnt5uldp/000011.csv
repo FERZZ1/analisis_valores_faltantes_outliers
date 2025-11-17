@@ -1,0 +1,2 @@
+"0","hist(ventas_limpio$edad_cliente, main = ""Edad - Limpia"", "
+"0","     col = ""lightgreen"", xlab = ""Edad"")"

@@ -1,0 +1,4 @@
+"0",""
+"0","# Datos con outliers en ambos lados"
+"0","datos_ambos <- c(datos_normales, 0, 5, 95, 100)"
+"0","boxplot(datos_ambos, main = ""Outliers en Ambos Lados"", col = ""pink"")"

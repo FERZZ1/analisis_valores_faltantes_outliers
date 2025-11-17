@@ -1,0 +1,1 @@
+"0","boxplot(datos_sin_outliers$peso, main = ""Eliminados"", col = ""lightgreen"")"

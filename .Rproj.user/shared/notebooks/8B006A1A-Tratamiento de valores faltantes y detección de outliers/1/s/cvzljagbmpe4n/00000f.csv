@@ -1,0 +1,7 @@
+"0","estudiantes <- data.frame("
+"0","  nombre = c(""Ana"", ""Luis"", ""María"", ""Carlos""),"
+"0","  edad = c(20, NA, 22, 21),"
+"0","  nota = c(85, 90, NA, 88)"
+"0",")"
+"0",""
+"0","print(estudiantes)"

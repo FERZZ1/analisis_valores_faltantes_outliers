@@ -1,0 +1,4 @@
+"0",""
+"0","# Datos con outliers extremos"
+"0","datos_extremos <- c(datos_normales, 100, 120)"
+"0","boxplot(datos_extremos, main = ""Outliers Extremos"", col = ""orange"")"

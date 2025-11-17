@@ -1,0 +1,1 @@
+"0","hist(datos_mice$edad, main = ""Edad Imputada"", xlab = ""Edad"", col = ""lightcoral"")"
