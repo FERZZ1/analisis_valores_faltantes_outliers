@@ -2,7 +2,7 @@
 title: "Tratamiento de Valores Faltantes y Detección de Outliers"
 author:
 - HINOSTROZA TENORIO, Yeferson
-- TU NOMBRE
+- SAYDA
 date: "`r Sys.Date()`"
 output:
   pdf_document: 
