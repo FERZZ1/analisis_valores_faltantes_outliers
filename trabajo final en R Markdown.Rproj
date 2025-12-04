@@ -5,8 +5,16 @@ author:
 - SANCHEZ MANSILLA, Sayda
 date: "`r Sys.Date()`"
 output:
-  pdf_document: 
-    toc: true
+  
+  pdf_document:
+    toc: false 
+    toc_depth: 3
+    number_sections: true
+    fig_caption: true
+    highlight: tango
+    latex_engine: xelatex
+    includes:
+    
   html_document:
     toc: true
     toc_float: true
@@ -15,7 +23,7 @@ output:
 course: "ES-288"
 teacher: Jackson Romero Plasencia
 ---
-
+ 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 library(tidyverse)
@@ -23,6 +31,10 @@ library(naniar)
 library(mice)
 library(VIM)
 ```
+
+\newpage
+\tableofcontents
+\newpage
 
 # Introducción
 
@@ -570,7 +582,7 @@ Lo más importante es ser transparente, documentar tus decisiones y siempre veri
 
 Recuerda: **los datos limpios no son perfectos, son apropiados para tu análisis.**
 
-# Referencias y Recursos Adicionales
+#  Recursos Adicionales
 
 Para aprender más sobre estos temas:
 
@@ -589,6 +601,21 @@ Para aprender más sobre estos temas:
     -   Documenta cada paso de tu limpieza
     -   Guarda versiones antes y después de la limpieza
     -   Verifica que los resultados tengan sentido
+
+
+### Referencias 
+
+Buuren, S. van, & Groothuis-Oudshoorn, K. (2011). *mice: Multivariate imputation by chained equations in R*. Journal of Statistical Software, 45(3), 1–67.
+
+Wickham, H. (2016). *ggplot2: Elegant Graphics for Data Analysis*. Springer.
+
+Wilcox, R. R. (2012). *Introduction to Robust Estimation and Hypothesis Testing* (3a ed.). Academic Press.
+
+Lazar, N. A. (2013). *The Statistics of Practical Data Analysis: Dealing with Missing Data and Outliers*. Elsevier.
+
+Afanador, J., & Pérez, M. (2020). Técnicas de imputación y su impacto en modelos predictivos. *Revista Latinoamericana de Estadística Aplicada*, 8(2), 45–60.
+
+
 
 
 
