@@ -5,16 +5,17 @@ author:
 - SANCHEZ MANSILLA, Sayda
 date: "`r Sys.Date()`"
 output:
-  
+  word_document:
+    toc: false
+    toc_depth: '3'
   pdf_document:
-    toc: false 
+    toc: false
     toc_depth: 3
     number_sections: true
     fig_caption: true
     highlight: tango
     latex_engine: xelatex
-    includes:
-    
+    includes: null
   html_document:
     toc: true
     toc_float: true
@@ -23,7 +24,7 @@ output:
 course: "ES-288"
 teacher: Jackson Romero Plasencia
 ---
- 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 library(tidyverse)
@@ -117,7 +118,14 @@ Las imágenes nos ayudan a entender mejor:
 
 ```{r vis_na, fig.width=8, fig.height=5}
 # Patrón de valores faltantes
-vis_miss(datos)
+library(naniar)
+
+gg_miss_var(datos, show_pct = TRUE) +
+  labs(title = "Porcentaje de Valores Faltantes por Variable",
+       x = "Variables",
+       y = "Porcentaje de NA") +
+  theme_minimal()
+
 ```
 
 Este gráfico nos muestra dónde están los huecos en nuestros datos. Las partes oscuras son datos que tenemos, las claras son los que faltan.
@@ -450,10 +458,19 @@ print(colSums(is.na(ventas)))
 
 ```{r eda, fig.width=10, fig.height=6}
 # Visualizar datos faltantes
-vis_miss(ventas)
+library(naniar)
+
+gg_miss_var(ventas, show_pct = TRUE) +
+  labs(title = "Porcentaje de Valores Faltantes por Variable",
+       x = "Variables",
+       y = "Porcentaje (%)") +
+  theme_minimal()
+
 
 # Estadísticas descriptivas
-summary(ventas)
+library(skimr)
+skim(ventas)
+
 ```
 
 ## Paso 2: Tratar valores faltantes
@@ -582,7 +599,7 @@ Lo más importante es ser transparente, documentar tus decisiones y siempre veri
 
 Recuerda: **los datos limpios no son perfectos, son apropiados para tu análisis.**
 
-#  Recursos Adicionales
+# Recursos Adicionales
 
 Para aprender más sobre estos temas:
 
@@ -602,8 +619,7 @@ Para aprender más sobre estos temas:
     -   Guarda versiones antes y después de la limpieza
     -   Verifica que los resultados tengan sentido
 
-
-### Referencias 
+# Referencias
 
 Buuren, S. van, & Groothuis-Oudshoorn, K. (2011). *mice: Multivariate imputation by chained equations in R*. Journal of Statistical Software, 45(3), 1–67.
 
@@ -613,18 +629,7 @@ Wilcox, R. R. (2012). *Introduction to Robust Estimation and Hypothesis Testing*
 
 Lazar, N. A. (2013). *The Statistics of Practical Data Analysis: Dealing with Missing Data and Outliers*. Elsevier.
 
-Afanador, J., & Pérez, M. (2020). Técnicas de imputación y su impacto en modelos predictivos. *Revista Latinoamericana de Estadística Aplicada*, 8(2), 45–60.
-
-
-
-
-
-
-
-
-
-
-
+Afanador, J., & Pérez, M. (2020). Técnicas de imputación y su impacto en modelos predictivos. *Revista Latinoamericana de Estadística Aplicada*, 8(2), 45–60
 
 
 
